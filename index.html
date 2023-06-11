@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GoHook</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        .hero-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .webhook-card {
+            margin-bottom: 20px;
+        }
+
+        .log-table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-header">
+        <h1>GoHook</h1>
+    </div>
+
+    <div class="webhook-card card">
+        <div class="card-body">
+            <h5 class="card-title">Webhook URL</h5>
+            <p class="card-text">{{.WebhookURL}}</p>
+        </div>
+    </div>
+
+    <div class="log-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Timestamp</th>
+                    <th scope="col">IP Address</th>
+                    <th scope="col">Method</th>
+                    <th scope="col">Parameters</th>
+                </tr>
+            </thead>
+            <tbody id="request-table">
+                {{ range .Connections }}
+                <tr>
+                    <td>{{ .Timestamp.Format "01-02-2006 03:04 PM" }}</td>
+                    <td>{{ .IP }}</td>
+                    <td>{{ .Method }}</td>
+                    <td>
+                        <ul>
+                            {{ range $key, $value := .Params }}
+                            <li>{{ $key }}: {{ $value }}</li>
+                            {{ end }}
+                        </ul>
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const socket = new WebSocket("ws://" + window.location.host + "/ws");
+        socket.onmessage = function(event) {
+            const connection = JSON.parse(event.data);
+            const tableRow = document.createElement("tr");
+
+            const timestampCell = document.createElement("td");
+            timestampCell.textContent = connection.Timestamp;
+            tableRow.appendChild(timestampCell);
+
+            const ipCell = document.createElement("td");
+            ipCell.textContent = connection.IP;
+            tableRow.appendChild(ipCell);
+
+            const methodCell = document.createElement("td");
+            methodCell.textContent = connection.Method;
+            tableRow.appendChild(methodCell);
+
+            const paramsCell = document.createElement("td");
+            const paramsList = document.createElement("ul");
+
+            Object.entries(connection.Params).forEach(([key, value]) => {
+                const paramItem = document.createElement("li");
+                paramItem.textContent = key + ": " + value;
+                paramsList.appendChild(paramItem);
+            });
+
+            paramsCell.appendChild(paramsList);
+            tableRow.appendChild(paramsCell);
+
+            const tableBody = document.getElementById("request-table");
+            tableBody.insertBefore(tableRow, tableBody.firstChild);
+        };
+    </script>
+</body>
+</html>
